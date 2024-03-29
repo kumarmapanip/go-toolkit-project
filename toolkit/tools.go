@@ -156,6 +156,8 @@ func (t *ToolKit) UploadFiles(r *http.Request, directory string, rename ...bool)
 				defer outFile.Close()
 
 				// create the output file in the dir
+				_ = t.CreateDirectoryIfNotExists(directory)
+				
 				outFile, err = os.Create(filepath.Join(directory, uploadedFile.NewFileName))
 				if err != nil {
 					return nil, err
@@ -189,4 +191,18 @@ func (t *ToolKit) UploadOneFile(r *http.Request, directory string, rename ...boo
 	}
 
 	return files[0], nil
+}
+
+func (t *ToolKit) CreateDirectoryIfNotExists(dirPath string) error {
+	mode := 0755
+
+	if _, err := os.Stat(dirPath); os.IsNotExist(err) {
+		// create directory
+		err = os.MkdirAll(dirPath, os.FileMode(mode))
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	return fmt.Errorf("dir already exists (exit 0)")
 }
