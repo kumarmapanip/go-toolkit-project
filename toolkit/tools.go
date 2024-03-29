@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -157,7 +158,7 @@ func (t *ToolKit) UploadFiles(r *http.Request, directory string, rename ...bool)
 
 				// create the output file in the dir
 				_ = t.CreateDirectoryIfNotExists(directory)
-				
+
 				outFile, err = os.Create(filepath.Join(directory, uploadedFile.NewFileName))
 				if err != nil {
 					return nil, err
@@ -205,4 +206,32 @@ func (t *ToolKit) CreateDirectoryIfNotExists(dirPath string) error {
 		return nil
 	}
 	return fmt.Errorf("dir already exists (exit 0)")
+}
+
+// create slug url
+func (t *ToolKit) Slugify(s string) (string, error) {
+	if len(s) == 0 {
+		return "", fmt.Errorf("invalid string")
+	}
+
+	// any length with a-z abd digit
+	regExp := regexp.MustCompile(`[^a-z\d]+`)
+
+	slug := strings.Trim(regExp.ReplaceAllString(s, "-"), "-")
+
+	if len(slug) == 0 {
+		return "", fmt.Errorf("after slugify slug is zero len")
+	}
+
+	return slug, nil
+}
+
+// DownloadStaticFile downloads a static file
+func (t *ToolKit) DownloadStaticFile(w http.ResponseWriter, r *http.Request, path, fileName, displayName string) {
+	fp := filepath.Join(path, fileName)
+
+	// set header
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", displayName))
+
+	http.ServeFile(w, r, fp)
 }

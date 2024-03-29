@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"mime/multipart"
+	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
@@ -56,19 +57,19 @@ var uploadTests = []struct {
 	errorExpected bool
 }{
 	{
-		name: "allowed no rename",
+		name:          "allowed no rename",
 		allowedTypes:  []string{"image/jpg", "image/png"},
 		renameFile:    false,
 		errorExpected: false,
 	},
 	{
-		name: "allowed rename",
+		name:          "allowed rename",
 		allowedTypes:  []string{"image/jpg", "image/png"},
 		renameFile:    true,
 		errorExpected: false,
 	},
 	{
-		name: "not allowed",
+		name:          "not allowed",
 		allowedTypes:  []string{"image/jpgp"},
 		renameFile:    true,
 		errorExpected: true,
@@ -146,7 +147,7 @@ func Test_UploadMultipleFiles(t *testing.T) {
 	}
 }
 
-func Test_UploadOneFile(t *testing.T)  {
+func Test_UploadOneFile(t *testing.T) {
 	pr, pw := io.Pipe()
 	writer := multipart.NewWriter(pw)
 
@@ -199,4 +200,32 @@ func Test_UploadOneFile(t *testing.T)  {
 	log.Println("Testcase 1: file is uploaded")
 	// clean up
 	_ = os.Remove(fmt.Sprintf("./testdata/uploads/%s", uploadedFile.NewFileName))
+}
+
+func Test_DownloadFile(t *testing.T) {
+	path := "./testdata"
+	fileNmae := "test-1.png"
+
+	tlk := ToolKit{}
+
+	respWriter := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/", nil)
+
+	tlk.DownloadStaticFile(respWriter, req, path, fileNmae, "sinoi.png")
+
+	res := respWriter.Result()
+	defer res.Body.Close()
+
+	if res.Header["Content-Length"][0] != "1392758" {
+		t.Error("Wrong content length: ", res.Header["Content-Length"][0])
+	}
+
+	if res.Header["Content-Disposition"][0] != "attachment; filename=\"sinoi.png\"" {
+		t.Error("Wrong disposition: ", res.Header["Content-Disposition"][0])
+	}
+
+	// _, err := io.ReadAll(req.Body)
+	// if err != nil {
+	// 	t.Error(err)
+	// }
 }
